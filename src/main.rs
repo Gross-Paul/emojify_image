@@ -7,7 +7,6 @@ const EMOJI_HEIGHT: usize = EMOJI_WIDTH;
 
 fn main() {
     let img = ImageReader::open("input.jpg").unwrap().decode().unwrap();
-    let pixels = img.pixels();
 
     let img_width = img.width();
     let img_height = img.height();
@@ -44,9 +43,14 @@ fn main() {
                     let vec_sub_img = sub_img_color.0;
                     let vec_emoji_color = new_emoji_color.0;
 
-                    for i in 0..4 {
-                        let sub_img_color = vec_sub_img[i];
-                        let emoji_color = vec_emoji_color[i];
+                    for i in 0..3 {
+                        let mut sub_img_color : i32 = vec_sub_img[i] as i32;
+                        let emoji_color: i32 = vec_emoji_color[i] as i32;
+
+                        if vec_emoji_color[3] == 0 {
+                            sub_img_color = 0;
+                        }
+
                         score += sub_img_color.abs_diff(emoji_color) as i64;
                     }
                 }
