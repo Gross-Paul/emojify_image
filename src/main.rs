@@ -1,4 +1,4 @@
-use image::{io::Reader as ImageReader, GenericImageView, RgbaImage};
+use image::{io::Reader as ImageReader, DynamicImage, GenericImageView, RgbaImage};
 use indicatif::ProgressIterator;
 use std::{fs, i64::MAX};
 
@@ -13,6 +13,21 @@ fn main() {
 
     let mut img_out = RgbaImage::new(img_width, img_height);
 
+    let mut emoji_images: Vec<DynamicImage> = vec![];
+
+    let paths = fs::read_dir("./images/160x160/").unwrap();
+
+    for path in paths {
+        let path = path.unwrap().path();
+        let result = path.display();
+        let emoji_img = ImageReader::open(result.to_string())
+            .expect("First")
+            .decode()
+            .expect(format!("{}", result).as_str());
+
+        emoji_images.push(emoji_img);
+    }
+
     for x in ((0..img_width).step_by(EMOJI_WIDTH)).progress() {
         for y in (0..img_height).step_by(EMOJI_HEIGHT) {
             let sub_image = img.view(
@@ -23,18 +38,9 @@ fn main() {
             );
 
             let mut best_emoji_score = MAX;
-            let mut best_emoji_path: String = "error".to_string();
+            let mut best_emoji_index: usize = 0;
 
-            let paths = fs::read_dir("./images/160x160/").unwrap();
-
-            for path in paths.into_iter() {
-                let path = path.unwrap().path();
-                let result = path.display();
-                let emoji_img = ImageReader::open(result.to_string())
-                    .expect("First")
-                    .decode()
-                    .expect(format!("{}", result).as_str());
-
+            for (i, emoji_img) in emoji_images.iter().enumerate() {
                 let mut score: i64 = 0;
 
                 for (x, y, sub_img_color) in sub_image.pixels() {
@@ -43,13 +49,9 @@ fn main() {
                     let vec_sub_img = sub_img_color.0;
                     let vec_emoji_color = new_emoji_color.0;
 
-                    for i in 0..3 {
-                        let mut sub_img_color : i32 = vec_sub_img[i] as i32;
+                    for i in 0..4 {
+                        let sub_img_color: i32 = vec_sub_img[i] as i32;
                         let emoji_color: i32 = vec_emoji_color[i] as i32;
-
-                        if vec_emoji_color[3] == 0 {
-                            sub_img_color = 0;
-                        }
 
                         score += sub_img_color.abs_diff(emoji_color) as i64;
                     }
@@ -57,16 +59,11 @@ fn main() {
 
                 if score < best_emoji_score.into() {
                     best_emoji_score = score;
-                    best_emoji_path = result.to_string();
+                    best_emoji_index = i;
                 }
             }
 
-            let emoji_img = ImageReader::open(best_emoji_path)
-                .unwrap()
-                .decode()
-                .unwrap();
-
-            for (i, j, sub_img_color) in emoji_img.pixels() {
+            for (i, j, sub_img_color) in emoji_images[best_emoji_index].pixels() {
                 if i + x >= img_width || j + y >= img_height {
                     continue;
                 }
